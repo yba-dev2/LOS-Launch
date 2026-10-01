@@ -15,6 +15,66 @@ curtainAudio.volume = .65;
 let curtainFadeFrame;
 let audioFade = 1;
 let launched = false;
+// Track pending work so a restored page cannot resume an old launch.
+const pendingTimers = new Set();
+const pendingFrames = new Set();
+let cleanupConfetti = () => {};
+function scheduleTimeout(callback, delay) {
+    const id = setTimeout(() => {
+        pendingTimers.delete(id);
+        callback();
+    }, delay);
+    pendingTimers.add(id);
+    return id;
+}
+function scheduleFrame(callback) {
+    const id = requestAnimationFrame(now => {
+        pendingFrames.delete(id);
+        callback(now);
+    });
+    pendingFrames.add(id);
+    return id;
+}
+function resetLaunch() {
+    pendingTimers.forEach(clearTimeout);
+    pendingTimers.clear();
+    pendingFrames.forEach(cancelAnimationFrame);
+    pendingFrames.clear();
+    cleanupConfetti();
+    [curtainAudio, celebrationAudio].forEach(audio => {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.muted = !soundEnabled;
+    });
+    curtainAudio.volume = .65;
+    celebrationAudio.volume = .8;
+    launched = false;
+    document.body.classList.remove('departing');
+    welcome.hidden = false;
+    welcome.classList.remove('leaving');
+    reveal.hidden = true;
+    reveal.classList.remove('visible');
+    celebration.hidden = true;
+    curtains.hidden = true;
+    curtains.classList.remove('open', 'finished');
+    document.getElementById('bubbles').hidden = false;
+    document.getElementById('launchBtn').disabled = false;
+    enterButton.disabled = true;
+    const canvas = document.getElementById('confetti');
+    const context = canvas.getContext('2d');
+    if (context) {
+        context.save();
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.restore();
+    }
+}
+window.addEventListener('pagehide', resetLaunch);
+window.addEventListener('pageshow', event => {
+    if (event.persisted || performance.getEntriesByType('navigation')[0]?.type === 'back_forward') {
+        resetLaunch();
+    }
+});
 function prepareAudio() {
     celebrationAudio.load();
     curtainAudio.load();
@@ -27,26 +87,27 @@ soundToggle.addEventListener('click', () => {
     curtainAudio.muted = !soundEnabled;
 });
 document.getElementById('launchBtn').addEventListener('click', function () {
+    if (this.disabled) return;
     this.disabled = true;
     prepareAudio();
     playCurtainSound();
     welcome.classList.add('leaving');
-    setTimeout(() => {
+    scheduleTimeout(() => {
         welcome.hidden = true;
         reveal.hidden = false;
         curtains.hidden = false;
-        requestAnimationFrame(() => requestAnimationFrame(() => {
+        scheduleFrame(() => scheduleFrame(() => {
             curtains.classList.add('open');
             reveal.classList.add('visible');
         }));
-        setTimeout(() => {
+        scheduleTimeout(() => {
             curtains.classList.add('finished');
             enterButton.disabled = false;
             enterButton.focus({ preventScroll: true });
-            setTimeout(() => { curtains.hidden = true; }, 750);
+            scheduleTimeout(() => { curtains.hidden = true; }, 750);
         }, reducedMotion ? 100 : 3600);
     }, reducedMotion ? 50 : 450);
-}, { once: true });
+});
 function playCurtainSound() {
     curtainAudio.currentTime = 0;
     curtainAudio.volume = .65;
@@ -57,10 +118,10 @@ function playCurtainSound() {
     function fade(now) {
         const elapsed = now - started;
         curtainAudio.volume = .65 * Math.max(0, Math.min(1, (4050 - elapsed) / 650));
-        if (elapsed < 4050) curtainFadeFrame = requestAnimationFrame(fade);
+        if (elapsed < 4050) curtainFadeFrame = scheduleFrame(fade);
         else curtainAudio.pause();
     }
-    curtainFadeFrame = requestAnimationFrame(fade);
+    curtainFadeFrame = scheduleFrame(fade);
 }
 function fanfare() {
     cancelAnimationFrame(curtainFadeFrame);
@@ -77,10 +138,10 @@ function fanfare() {
         const elapsed = now - started;
         audioFade = elapsed < 3700 ? 1 : Math.max(0, 1 - (elapsed - 3700) / 1100);
         celebrationAudio.volume = .8 * audioFade;
-        if (elapsed < 4800) requestAnimationFrame(fade);
+        if (elapsed < 4800) scheduleFrame(fade);
         else celebrationAudio.pause();
     }
-    requestAnimationFrame(fade);
+    scheduleFrame(fade);
 }
 function confetti() {
     if (reducedMotion) return;
@@ -95,6 +156,7 @@ function confetti() {
         context.setTransform(scale,0,0,scale,0,0);
     }
     resize(); window.addEventListener('resize',resize);
+    cleanupConfetti = () => window.removeEventListener('resize', resize);
     const colors = ['#0b5bc6','#ffffff','#ffd166','#ef476f','#06d6a0','#a78bfa','#ff8c42','#4cc9f0'];
     const particles = Array.from({length:190}, () => ({x:Math.random()*width,y:-Math.random()*height*.9,w:5+Math.random()*7,h:4+Math.random()*6,vx:(Math.random()-.5)*3,vy:2+Math.random()*4,rotation:Math.random()*Math.PI,spin:(Math.random()-.5)*.15,color:colors[Math.floor(Math.random()*colors.length)]}));
     const start = performance.now(); let previous = start;
@@ -107,10 +169,10 @@ function confetti() {
             context.save(); context.translate(p.x,p.y); context.rotate(p.rotation);
             context.fillStyle=p.color; context.fillRect(-p.w/2,-p.h/2,p.w,p.h); context.restore();
         });
-        if(now-start<4800) requestAnimationFrame(frame);
+        if(now-start<4800) scheduleFrame(frame);
         else {context.clearRect(0,0,width,height);window.removeEventListener('resize',resize);}
     }
-    requestAnimationFrame(frame);
+    scheduleFrame(frame);
 }
 enterButton.addEventListener('click', () => {
     if (launched) return;
@@ -119,9 +181,10 @@ enterButton.addEventListener('click', () => {
     reveal.hidden = true; celebration.hidden = false;
     celebration.setAttribute('tabindex','-1'); celebration.focus({preventScroll:true});
     fanfare(); confetti();
-    setTimeout(() => {document.body.classList.add('departing');}, 4800);
-    setTimeout(() => {window.location.assign('https://los.bil.bt');}, 5500);
+    scheduleTimeout(() => {document.body.classList.add('departing');}, 4800);
+    scheduleTimeout(() => {window.location.assign('https://los.bil.bt');}, 5500);
 });
+
 
 
 
