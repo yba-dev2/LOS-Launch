@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIL | Official LOS Launch</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="ambient" aria-hidden="true"></div>
+
+    <div id="bubbles" class="bubble-container" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+
+    <button id="soundToggle" class="sound-toggle" aria-pressed="true">
+        Sound on
+    </button>
+
+    <main>
+        <section id="welcome" class="screen welcome">
+            <img class="logo" src="billogo.png" alt="Bhutan Insurance Limited">
+
+            <p class="eyebrow">Bhutan Insurance Limited</p>
+
+            <h1>
+                Loan Origination
+                System
+            </h1>
+
+            <p class="tagline">
+                A new chapter in connected, efficient operations.
+            </p>
+
+            <div class="event-details">
+                <div>
+                    <span>Date</span>
+                    <strong>2 October 2026</strong>
+                </div>
+
+                <div>
+                    <span>Time</span>
+                    <strong>9:00 AM</strong>
+                </div>
+
+                <div>
+                    <span>Venue</span>
+                    <strong>BIL Head Office</strong>
+                </div>
+            </div>
+
+            <button id="launchBtn" class="primary">
+                Official Launch
+            </button>
+
+            <p class="footnote">Official Launch Ceremony</p>
+        </section>
+
+        <section
+            id="reveal"
+            class="screen reveal"
+            hidden
+            aria-labelledby="revealTitle"
+        >
+            <img class="logo small" src="billogo.png" alt="Bhutan Insurance Limited">
+
+            <p class="eyebrow">The next chapter begins</p>
+
+            <h2 id="revealTitle">
+                Welcome to BIL’s<br>
+                Loan Origination System
+            </h2>
+
+            <p class="tagline">Built for the journey ahead.</p>
+
+            <button id="losBtn" class="primary" disabled>
+                Launch 
+            </button>
+        </section>
+
+        <section
+            id="celebration"
+            class="screen celebration"
+            hidden
+            aria-labelledby="celebrationTitle"
+        >
+            <img class="logo small" src="billogo.png" alt="Bhutan Insurance Limited">
+
+            <p class="eyebrow">A milestone worth celebrating</p>
+
+            <h2 id="celebrationTitle">
+                LOS is officially<br>
+                launched!
+            </h2>
+
+            <p class="tagline" role="status">
+                Opening the Loan Origination System…
+            </p>
+
+            <div class="progress" aria-hidden="true">
+                <span></span>
+            </div>
+        </section>
+    </main>
+
+    <div
+        id="curtainWrapper"
+        class="curtain-wrapper"
+        hidden
+        aria-hidden="true"
+    >
+        <div class="valance"></div>
+        <div class="curtain left-curtain"></div>
+        <div class="curtain right-curtain"></div>
+    </div>
+
+    <canvas id="confetti" aria-hidden="true"></canvas>
+
+    <script src="script.js"></script>
+</body>
+</html>
